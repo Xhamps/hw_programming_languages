@@ -1,0 +1,110 @@
+fun seconds (xs : (int * int * int) list) =
+  if null xs
+  then []
+  else (#2 (hd xs))::(seconds(tl xs))
+
+fun count_find (xs : int list, number : int) =
+  if null xs
+  then 0
+  else
+    let val result = count_find(tl xs, number)
+    in
+      if (hd xs) = number then result + 1 else result
+    end
+
+fun count_find_by_month (month : int list, numbers : int list) =
+  if null numbers
+  then 0
+  else
+    let
+      val count = count_find(month, hd numbers)
+      val result = count_find_by_month(month, tl numbers)
+    in
+      if count > 0 then result + 1 else result
+    end
+
+fun is_equal ( date1: int*int*int , date2: int*int*int ) = #1 date1 = #1 date2 andalso #2 date1 = #2 date2 andalso #3 date1 = #3 date2
+
+(* is_older ((1,2,3),(2,3,4)) = true *)
+fun is_older ( date1: int*int*int , date2: int*int*int ) =
+  let
+    val y1 = #3 date1
+    val y2 = #3 date2
+    val m1 = #2 date1
+    val m2 = #2 date2
+    val d1 = #1 date1
+    val d2 = #1 date2
+  in
+    y1 < y2 orelse
+    (y1 = y2 andalso m1 < m2) orelse
+    (y1 = y2 andalso m1 = m2 andalso d1 < d2)
+  end
+
+(* number_in_month ([(2012,2,28),(2013,12,1)],2) = 1 *)
+fun number_in_month ( dates : (int * int * int) list, month : int) = count_find(seconds(dates), month)
+
+(* number_in_months ([(2012,2,28),(2013,12,1),(2011,3,31),(2011,4,28)],[2,3,4]) = 3 *)
+fun number_in_months ( dates : (int * int * int) list, months : int list) = count_find_by_month(seconds(dates), months)
+
+(* dates_in_month ([(2012,2,28),(2013,12,1)],2) = [(2012,2,28)] *)
+fun dates_in_month ( dates : (int * int * int) list, months : int) =
+  if null dates
+  then []
+  else
+    if #2 (hd dates) = months
+    then (hd dates)::(dates_in_month(tl dates, months))
+    else dates_in_month(tl dates, months)
+
+(* dates_in_months ([(2012,2,28),(2013,12,1),(2011,3,31),(2011,4,28)],[2,3,4]) = [(2012,2,28),(2011,3,31),(2011,4,28)] *)
+fun dates_in_months ( dates : (int * int * int) list, months : int list) =
+  if null months
+  then []
+  else (dates_in_month(dates, hd months)) @ (dates_in_months(dates, tl months))
+
+(* get_nth (["hi", "there", "how", "are", "you"], 2) = "there" *)
+fun get_nth (names : string list, position: int) =
+  if position = 1
+  then hd names
+  else get_nth((tl names), (position - 1))
+
+(* date_to_string (2013, 6, 1) = "June 1, 2013" *)
+fun date_to_string (year: int, month: int, day: int) =
+  let
+    val months_name = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    val month_name = get_nth(months_name, month)
+  in
+    month_name ^ " " ^ (Int.toString day) ^ ", " ^ (Int.toString year)
+  end
+
+(* number_before_reaching_sum (10, [1,2,3,4,5]) = 3 *)
+fun number_before_reaching_sum (result: int, number: int list) =
+  if null (tl number)
+  then 0
+  else
+    let
+      val new_numbers = ((hd number) + (hd (tl number))) :: (tl (tl number))
+    in
+      if(hd number) >= result
+      then 0
+      else number_before_reaching_sum(result, new_numbers) + 1
+    end
+
+
+(* what_month 70 = 3 *)
+fun what_month (number: int) =
+  number_before_reaching_sum(number, [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]) + 1
+
+(* month_range (31, 34) = [1,2,2,2] *)
+fun month_range (start_number: int, end_number: int) =
+  if(start_number <= end_number)
+  then (what_month(start_number)) :: (month_range((start_number + 1), end_number))
+  else []
+
+(* oldest([(2012,2,28),(2011,3,31),(2011,4,28)]) = SOME (2011,3,31) *)
+fun oldest (dates : (int * int * int) list) =
+  if null (tl dates)
+  then SOME (hd dates)
+  else
+    if is_older((hd dates), (hd (tl dates)))
+    then oldest(tl dates)
+    else oldest((hd dates) :: (tl (tl dates)))
