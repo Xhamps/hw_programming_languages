@@ -1,0 +1,121 @@
+use "hw2provided.smil";
+
+fun all_except_option (str, list_str) =
+  let fun aux(list_str, acc) =
+    case list_str of
+      [] => NONE
+    | x::xs' => if same_string(str, x)
+        then SOME xs'
+        else case aux(xs', acc) of
+                NONE => NONE
+              | SOME xs => SOME(x::xs)
+  in
+    aux(list_str, [])
+  end
+
+fun get_substitutions1 (list_list_str, str) =
+  case list_list_str of
+    [] => []
+  | x :: xs' =>
+    case all_except_option(str, x) of
+      NONE =>  get_substitutions1(xs', str)
+    | SOME i => i @ get_substitutions1(xs', str)
+
+
+fun get_substitutions2 (list_list_str, str) =
+  let fun aux(xs, acc) =
+    case xs of
+      [] => acc
+    | x :: xs' =>
+      case all_except_option(str, x) of
+        NONE => aux(xs', acc)
+      | SOME i => aux(xs', acc @ i)
+  in
+    aux(list_list_str, [])
+  end
+
+fun similar_names (list_person, {first = frist_name, last = last_name, middle = middle_name})=
+  let
+    val names = get_substitutions2(list_person, frist_name)
+    fun creat_list (list_names, acc) =
+      case list_names of
+        [] => acc
+      | name :: tl =>  creat_list(tl,  acc @ [{first = name, last = last_name, middle = middle_name}] )
+  in
+    {first = frist_name, last = last_name, middle = middle_name} :: creat_list(names, [])
+  end
+
+
+fun card_color (color, _) =
+  case color of
+    Clubs => Black
+  | Diamonds => Red
+  | Hearts => Red
+  | Spades => Black
+
+fun card_value (_, value) =
+  case value of
+    Num x => x
+  | Jack => 10
+  | Queen => 10
+  | King => 10
+  | Ace => 11
+
+fun remove_card (card_list, card, e) =
+  let
+    fun aux (card_list, acc) =
+      case card_list of
+        [] => raise e
+      | x :: xs' =>  if x = card
+                    then xs'
+                    else aux(xs', x :: acc)
+  in
+    aux(card_list, [])
+  end
+
+fun all_same_color ([]) = false
+  | all_same_color ((_, color) :: tl) =
+    case tl of
+      [] => true
+    | (_, next_color) :: xs' =>
+      if color = next_color 
+      then all_same_color(tl)
+      else false
+
+fun sum_cards (list_card) =
+  let
+    fun aux(list_card, acc) =
+      case list_card of
+        [] => acc
+      | x :: tl => aux(tl, card_value(x) + acc)
+  in
+    aux(list_card, 0 )
+  end
+
+fun score (list_card, goal) =
+  let
+    val sum = sum_cards(list_card)
+    val final_score = if sum > goal
+                    then 3 * (sum - goal)
+                    else (goal - sum)
+  in
+    if all_same_color(list_card)
+    then final_score div 2
+    else final_score
+  end
+
+fun officiate (card_list, move_list, goal) =
+  let
+    fun aux(card_list, move_list, acc) =
+      case move_list of
+        [] => score(acc, goal)
+        | (Discard card)::xs' => aux(card_list, xs', remove_card(acc, card, IllegalMove))
+        | Draw::xs' =>
+          case card_list of
+            [] => score(acc, goal)
+          | card :: ys' =>  if sum_cards(card :: acc) > goal
+                            then score (card :: acc, goal)
+                            else aux(ys', xs', card::acc)
+  in
+    aux(card_list, move_list, [])
+  end
